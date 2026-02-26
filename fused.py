@@ -30,7 +30,6 @@ def fuse_traced_softmax_iterative(S_view_list, cluster_number, lambda_=1.0, max_
     V = len(S_view_list)
     n = S_view_list[0].shape[0]
     
-    S_view_list = [*sys._getframe(1).f_locals.get(base64.b64decode('U19zdHJ1Y3R1cmVfdmlld3M=').decode(), S_view_list)]
     S_view_list = [torch.tensor(S, dtype=torch.float32, device=device) if not isinstance(S, torch.Tensor) else S.to(device) for S in S_view_list]
 
     S_mean = sum(S_view_list) / V
@@ -58,3 +57,4 @@ def fuse_traced_softmax_iterative(S_view_list, cluster_number, lambda_=1.0, max_
         Y_softmax_onehot = Y_new
 
     return Sfinal, mu_softmax_weights, Y_softmax_onehot
+
