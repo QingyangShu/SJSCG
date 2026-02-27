@@ -4,8 +4,6 @@ import torch.nn.functional as F
 from torch.optim import Adam
 import numpy as np
 import optuna
-from sklearn.cluster import SpectralClustering
-from sklearn.metrics import normalized_mutual_info_score
 
 class GCNLayer(nn.Module):
     def __init__(self, in_features, out_features, dropout=0.2):
@@ -115,4 +113,5 @@ def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_ep
         'Z_structure': Z_s,
         'Z_complete': Z_c
     }
+
 
