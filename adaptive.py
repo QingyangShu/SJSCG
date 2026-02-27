@@ -11,7 +11,6 @@ class AlphaFusionEM:
         self.max_iter = max_iter
         self.device = device
         self.n_views = len(Z_s_list)
-        # 初始化为0.9，偏向于Z_s
         self.alpha_list = [torch.nn.Parameter(torch.tensor(0.9, device=device, requires_grad=True)) for _ in range(self.n_views)]
 
     def spectral_embedding(self, S, k):
@@ -64,3 +63,4 @@ class AlphaFusionEM:
                 Y_list.append(Y_v)
 
         return S_fused_list, [a.item() for a in self.alpha_list], Y_list
+
