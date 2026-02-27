@@ -35,20 +35,11 @@ def normalize_adj(adj):
     D_inv_sqrt = torch.diag(deg_inv_sqrt)
     return D_inv_sqrt @ adj @ D_inv_sqrt
 
-def cluster_consistency_loss(Z, S, n_clusters):
-    ZZ = torch.matmul(Z, Z.T).detach().cpu().numpy()
-    S = S.detach().cpu().numpy()
-    pred_labels = SpectralClustering(n_clusters=n_clusters, affinity='precomputed').fit_predict(ZZ)
-    true_labels = SpectralClustering(n_clusters=n_clusters, affinity='precomputed').fit_predict(S)
-    return 1.0 - normalized_mutual_info_score(true_labels, pred_labels)
-
 def structure_reconstruction_loss(Z, S):
     S = S.to(Z.device)
     S_hat = torch.sigmoid(torch.matmul(Z, Z.T))
     return F.mse_loss(S_hat, S)
 
-def alignment_loss(Z1, Z2):
-    return F.mse_loss(Z1, Z2)
 
 def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_epochs=100, n_trials=20, out_dim_fixed=128, device='cpu'):
     dimensions_match = (S_structure.shape == S_complete.shape)
@@ -72,11 +63,8 @@ def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_ep
             Z_s = model(X_tensor, S_s_tensor)
             Z_c = model(X_tensor, S_c_tensor)
             loss = (
-                cluster_consistency_loss(Z_s, S_s_tensor, cluster_num) +
-                cluster_consistency_loss(Z_c, S_c_tensor, cluster_num) +
                 1.0 * (structure_reconstruction_loss(Z_s, S_s_tensor) +
-                       structure_reconstruction_loss(Z_c, S_c_tensor))+
-                0.5 * alignment_loss(Z_s, Z_c)
+                       structure_reconstruction_loss(Z_c, S_c_tensor))
             )
             loss.backward()
             optimizer.step()
@@ -86,11 +74,8 @@ def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_ep
             Z_s = model(X_tensor, S_s_tensor).cpu()
             Z_c = model(X_tensor, S_c_tensor).cpu()
         return (
-            cluster_consistency_loss(Z_s, S_s_tensor, cluster_num) +
-            cluster_consistency_loss(Z_c, S_c_tensor, cluster_num) +
             1.0 * (structure_reconstruction_loss(Z_s, S_s_tensor) +
-                   structure_reconstruction_loss(Z_c, S_c_tensor))+
-            0.5 * alignment_loss(Z_s, Z_c)
+                   structure_reconstruction_loss(Z_c, S_c_tensor))
         )
 
     study = optuna.create_study(direction="minimize")
@@ -111,11 +96,8 @@ def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_ep
         Z_s = best_model(X_tensor, S_s_tensor)
         Z_c = best_model(X_tensor, S_c_tensor)
         loss = (
-            cluster_consistency_loss(Z_s, S_s_tensor, cluster_num) +
-            cluster_consistency_loss(Z_c, S_c_tensor, cluster_num) +
             1.0 * (structure_reconstruction_loss(Z_s, S_s_tensor) +
-                   structure_reconstruction_loss(Z_c, S_c_tensor))+
-            0.5 * alignment_loss(Z_s, Z_c)
+                   structure_reconstruction_loss(Z_c, S_c_tensor))
         )
         loss.backward()
         optimizer.step()
@@ -128,9 +110,9 @@ def optimize_gcn_with_optuna(X_hat, S_structure, S_complete, cluster_num, max_ep
     if dimensions_match:
         Z_s = torch.tensor(S_structure, dtype=torch.float32)
         Z_c = torch.tensor(S_complete, dtype=torch.float32)
-
     return {
         'best_params': best_params,
         'Z_structure': Z_s,
         'Z_complete': Z_c
     }
+
